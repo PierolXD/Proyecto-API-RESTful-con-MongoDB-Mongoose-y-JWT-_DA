@@ -1,0 +1,123 @@
+POST /api/auth/register
+Headers: {"Content-Type":"application/json"}
+Request: {"nombre":"Cliente de prueba","email":"demo-ae6748d11da3@example.com","password":"Solo-Pruebas-2026"}
+HTTP 201 Created
+Response: {
+  "usuario": {
+    "id": "6afb413519c1139d371ffa13",
+    "nombre": "Cliente de prueba",
+    "email": "demo-ae6748d11da3@example.com"
+  }
+}
+
+POST /api/auth/register
+Headers: {"Content-Type":"application/json"}
+Request: {"nombre":"Cliente de prueba","email":"demo-ae6748d11da3@example.com","password":"Solo-Pruebas-2026"}
+HTTP 409 Conflict
+Response: {
+  "error": "El registro ya existe."
+}
+
+POST /api/auth/login
+Headers: {"Content-Type":"application/json"}
+Request: {"email":"demo-ae6748d11da3@example.com","password":"Incorrecta123"}
+HTTP 401 Unauthorized
+Response: {
+  "error": "Credenciales incorrectas."
+}
+
+POST /api/auth/login
+Headers: {"Content-Type":"application/json"}
+Request: {"email":"demo-ae6748d11da3@example.com","password":"Solo-Pruebas-2026"}
+HTTP 200 OK
+Response: {
+  "token": "<JWT omitido>",
+  "usuario": {
+    "id": "6afb413519c1139d371ffa13",
+    "nombre": "Cliente de prueba",
+    "email": "demo-ae6748d11da3@example.com"
+  }
+}
+
+POST /api/orders
+Headers: {"Content-Type":"application/json"}
+Request: {"items":[{"producto":"6afb413519c1139d371ffa0f","cantidad":2}]}
+HTTP 401 Unauthorized
+Response: {
+  "error": "Token ausente, inválido o vencido."
+}
+
+POST /api/orders
+Headers: {"Content-Type":"application/json","Authorization":"Bearer <JWT omitido>"}
+Request: {"items":[{"producto":"6afb413519c1139d371ffa0f","cantidad":2},{"producto":"6afb413519c1139d371ffa10","cantidad":2}]}
+HTTP 409 Conflict
+Response: {
+  "error": "Stock insuficiente."
+}
+
+POST /api/orders
+Headers: {"Content-Type":"application/json","Authorization":"Bearer <JWT omitido>"}
+Request: {"items":[{"producto":"6afb413519c1139d371ffa0f","cantidad":2,"precioCentavos":1}]}
+HTTP 201 Created
+Response: {
+  "orden": {
+    "usuario": "6afb413519c1139d371ffa13",
+    "items": [
+      {
+        "producto": "6afb413519c1139d371ffa0f",
+        "nombre": "Pelota de prueba 1",
+        "cantidad": 2,
+        "precioCentavos": 8900
+      }
+    ],
+    "totalCentavos": 17800,
+    "estado": "comprada",
+    "_id": "6afb413619c1139d371ffa20",
+    "createdAt": "2026-11-16T17:45:26.884Z",
+    "updatedAt": "2026-11-16T17:45:26.884Z",
+    "__v": 0
+  }
+}
+
+PATCH /api/orders/6afb413619c1139d371ffa20/return
+Headers: {"Authorization":"Bearer <JWT omitido>"}
+Request: (sin cuerpo)
+HTTP 404 Not Found
+Response: {
+  "error": "Orden no encontrada."
+}
+
+PATCH /api/orders/6afb413619c1139d371ffa20/return
+Headers: {"Authorization":"Bearer <JWT omitido>"}
+Request: (sin cuerpo)
+HTTP 200 OK
+Response: {
+  "orden": {
+    "_id": "6afb413619c1139d371ffa20",
+    "usuario": "6afb413519c1139d371ffa13",
+    "items": [
+      {
+        "producto": "6afb413519c1139d371ffa0f",
+        "nombre": "Pelota de prueba 1",
+        "cantidad": 2,
+        "precioCentavos": 8900
+      }
+    ],
+    "totalCentavos": 17800,
+    "estado": "devuelta",
+    "createdAt": "2026-11-16T17:45:26.884Z",
+    "updatedAt": "2026-11-16T17:45:27.511Z",
+    "__v": 0,
+    "devueltaEn": "2026-11-16T17:45:27.511Z"
+  }
+}
+
+PATCH /api/orders/6afb413619c1139d371ffa20/return
+Headers: {"Authorization":"Bearer <JWT omitido>"}
+Request: (sin cuerpo)
+HTTP 409 Conflict
+Response: {
+  "error": "La orden ya fue devuelta."
+}
+
+OK: autenticación, catálogo, precios del servidor, stock, reversión de compra y devoluciones.
