@@ -1,18 +1,19 @@
 POST /api/auth/register
 Headers: {"Content-Type":"application/json"}
-Request: {"nombre":"Cliente de prueba","email":"demo-ae6748d11da3@example.com","password":"Solo-Pruebas-2026"}
+Request: {"nombre":"Cliente de prueba","email":"demo-fec1cb3327db@example.com","password":"Solo-Pruebas-2026"}
 HTTP 201 Created
 Response: {
   "usuario": {
-    "id": "6afb413519c1139d371ffa13",
+    "id": "6afb841994a67f033a2b26b0",
     "nombre": "Cliente de prueba",
-    "email": "demo-ae6748d11da3@example.com"
+    "email": "demo-fec1cb3327db@example.com",
+    "role": "client"
   }
 }
 
 POST /api/auth/register
 Headers: {"Content-Type":"application/json"}
-Request: {"nombre":"Cliente de prueba","email":"demo-ae6748d11da3@example.com","password":"Solo-Pruebas-2026"}
+Request: {"nombre":"Cliente de prueba","email":"demo-fec1cb3327db@example.com","password":"Solo-Pruebas-2026"}
 HTTP 409 Conflict
 Response: {
   "error": "El registro ya existe."
@@ -20,7 +21,7 @@ Response: {
 
 POST /api/auth/login
 Headers: {"Content-Type":"application/json"}
-Request: {"email":"demo-ae6748d11da3@example.com","password":"Incorrecta123"}
+Request: {"email":"demo-fec1cb3327db@example.com","password":"Incorrecta123"}
 HTTP 401 Unauthorized
 Response: {
   "error": "Credenciales incorrectas."
@@ -28,20 +29,61 @@ Response: {
 
 POST /api/auth/login
 Headers: {"Content-Type":"application/json"}
-Request: {"email":"demo-ae6748d11da3@example.com","password":"Solo-Pruebas-2026"}
+Request: {"email":"demo-fec1cb3327db@example.com","password":"Solo-Pruebas-2026"}
 HTTP 200 OK
 Response: {
   "token": "<JWT omitido>",
   "usuario": {
-    "id": "6afb413519c1139d371ffa13",
+    "id": "6afb841994a67f033a2b26b0",
     "nombre": "Cliente de prueba",
-    "email": "demo-ae6748d11da3@example.com"
+    "email": "demo-fec1cb3327db@example.com",
+    "role": "client"
+  }
+}
+
+POST /api/auth/register
+Headers: {"Content-Type":"application/json"}
+Request: {"nombre":"Admin de prueba","role":"admin","email":"admin-fec1cb3327db@example.com","password":"Admin-Pruebas-2026"}
+HTTP 201 Created
+Response: {
+  "usuario": {
+    "id": "6afb841b94a67f033a2b26b6",
+    "nombre": "Admin de prueba",
+    "email": "admin-fec1cb3327db@example.com",
+    "role": "client"
+  }
+}
+
+POST /api/products
+Headers: {"Content-Type":"application/json","Authorization":"Bearer <JWT omitido>"}
+Request: {"sku":"HUE-FORBIDDEN-fec1cb3327db","nombre":"Intento no autorizado","categoria":"accesorios","precioCentavos":5000,"stock":10}
+HTTP 403 Forbidden
+Response: {
+  "error": "Solo los administradores pueden crear productos."
+}
+
+POST /api/products
+Headers: {"Content-Type":"application/json","Authorization":"Bearer <JWT omitido>"}
+Request: {"sku":"HUE-ADMIN-fec1cb3327db","nombre":"Producto creado por Admin","description":"Verificación de endpoint integrado","categoria":"accesorios","precioCentavos":12500,"stock":15}
+HTTP 201 Created
+Response: {
+  "producto": {
+    "sku": "HUE-ADMIN-FEC1CB3327DB",
+    "nombre": "Producto creado por Admin",
+    "description": "Verificación de endpoint integrado",
+    "categoria": "accesorios",
+    "precioCentavos": 12500,
+    "stock": 15,
+    "_id": "6afb841c94a67f033a2b26bb",
+    "createdAt": "2026-11-16T22:30:52.104Z",
+    "updatedAt": "2026-11-16T22:30:52.104Z",
+    "__v": 0
   }
 }
 
 POST /api/orders
 Headers: {"Content-Type":"application/json"}
-Request: {"items":[{"producto":"6afb413519c1139d371ffa0f","cantidad":2}]}
+Request: {"items":[{"producto":"6afb841894a67f033a2b26ac","cantidad":2}]}
 HTTP 401 Unauthorized
 Response: {
   "error": "Token ausente, inválido o vencido."
@@ -49,7 +91,7 @@ Response: {
 
 POST /api/orders
 Headers: {"Content-Type":"application/json","Authorization":"Bearer <JWT omitido>"}
-Request: {"items":[{"producto":"6afb413519c1139d371ffa0f","cantidad":2},{"producto":"6afb413519c1139d371ffa10","cantidad":2}]}
+Request: {"items":[{"producto":"6afb841894a67f033a2b26ac","cantidad":2},{"producto":"6afb841894a67f033a2b26ad","cantidad":2}]}
 HTTP 409 Conflict
 Response: {
   "error": "Stock insuficiente."
@@ -57,14 +99,14 @@ Response: {
 
 POST /api/orders
 Headers: {"Content-Type":"application/json","Authorization":"Bearer <JWT omitido>"}
-Request: {"items":[{"producto":"6afb413519c1139d371ffa0f","cantidad":2,"precioCentavos":1}]}
+Request: {"items":[{"producto":"6afb841894a67f033a2b26ac","cantidad":2,"precioCentavos":1}]}
 HTTP 201 Created
 Response: {
   "orden": {
-    "usuario": "6afb413519c1139d371ffa13",
+    "usuario": "6afb841994a67f033a2b26b0",
     "items": [
       {
-        "producto": "6afb413519c1139d371ffa0f",
+        "producto": "6afb841894a67f033a2b26ac",
         "nombre": "Pelota de prueba 1",
         "cantidad": 2,
         "precioCentavos": 8900
@@ -72,14 +114,14 @@ Response: {
     ],
     "totalCentavos": 17800,
     "estado": "comprada",
-    "_id": "6afb413619c1139d371ffa20",
-    "createdAt": "2026-11-16T17:45:26.884Z",
-    "updatedAt": "2026-11-16T17:45:26.884Z",
+    "_id": "6afb841c94a67f033a2b26c4",
+    "createdAt": "2026-11-16T22:30:52.203Z",
+    "updatedAt": "2026-11-16T22:30:52.203Z",
     "__v": 0
   }
 }
 
-PATCH /api/orders/6afb413619c1139d371ffa20/return
+PATCH /api/orders/6afb841c94a67f033a2b26c4/return
 Headers: {"Authorization":"Bearer <JWT omitido>"}
 Request: (sin cuerpo)
 HTTP 404 Not Found
@@ -87,17 +129,17 @@ Response: {
   "error": "Orden no encontrada."
 }
 
-PATCH /api/orders/6afb413619c1139d371ffa20/return
+PATCH /api/orders/6afb841c94a67f033a2b26c4/return
 Headers: {"Authorization":"Bearer <JWT omitido>"}
 Request: (sin cuerpo)
 HTTP 200 OK
 Response: {
   "orden": {
-    "_id": "6afb413619c1139d371ffa20",
-    "usuario": "6afb413519c1139d371ffa13",
+    "_id": "6afb841c94a67f033a2b26c4",
+    "usuario": "6afb841994a67f033a2b26b0",
     "items": [
       {
-        "producto": "6afb413519c1139d371ffa0f",
+        "producto": "6afb841894a67f033a2b26ac",
         "nombre": "Pelota de prueba 1",
         "cantidad": 2,
         "precioCentavos": 8900
@@ -105,14 +147,14 @@ Response: {
     ],
     "totalCentavos": 17800,
     "estado": "devuelta",
-    "createdAt": "2026-11-16T17:45:26.884Z",
-    "updatedAt": "2026-11-16T17:45:27.511Z",
+    "createdAt": "2026-11-16T22:30:52.203Z",
+    "updatedAt": "2026-11-16T22:30:53.037Z",
     "__v": 0,
-    "devueltaEn": "2026-11-16T17:45:27.511Z"
+    "devueltaEn": "2026-11-16T22:30:53.037Z"
   }
 }
 
-PATCH /api/orders/6afb413619c1139d371ffa20/return
+PATCH /api/orders/6afb841c94a67f033a2b26c4/return
 Headers: {"Authorization":"Bearer <JWT omitido>"}
 Request: (sin cuerpo)
 HTTP 409 Conflict
@@ -120,4 +162,4 @@ Response: {
   "error": "La orden ya fue devuelta."
 }
 
-OK: autenticación, catálogo, precios del servidor, stock, reversión de compra y devoluciones.
+OK: autenticación, roles, catálogo, precios del servidor, stock, reversión de compra y devoluciones.

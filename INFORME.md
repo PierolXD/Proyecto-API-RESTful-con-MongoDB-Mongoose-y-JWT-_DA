@@ -97,7 +97,8 @@ const schema = new mongoose.Schema({
   nombre: { type: String, required: true, trim: true, maxlength: 100 },
   email: { type: String, required: true, trim: true, lowercase: true, unique: true,
     maxlength: 254, match: /^[^\s@]+@[^\s@]+\.[^\s@]+$/ },
-  passwordHash: { type: String, required: true, select: false }
+  passwordHash: { type: String, required: true, select: false },
+  role: { type: String, enum: ['client', 'admin'], default: 'client' }
 }, { timestamps: true });
 
 export default mongoose.model('User', schema);
@@ -111,6 +112,7 @@ import mongoose from 'mongoose';
 const schema = new mongoose.Schema({
   sku: { type: String, required: true, trim: true, uppercase: true, unique: true },
   nombre: { type: String, required: true, trim: true },
+  description: { type: String, default: '' },
   categoria: { type: String, required: true, enum: ['alimento', 'juguetes', 'higiene', 'accesorios'] },
   precioCentavos: { type: Number, required: true, min: 1, max: 100000000, validate: Number.isSafeInteger },
   stock: { type: Number, required: true, min: 0, validate: Number.isSafeInteger }
@@ -162,6 +164,8 @@ export default mongoose.model('Order', schema);
 ## 4. Documentación de Endpoints y Pruebas (Texto Plano)
 
 Todas las pruebas corresponden a ejecuciones HTTP reales contra la API activa, con salida en texto plano sin el uso de capturas de pantalla ni Postman.
+
+La [ejecución de integración](EVIDENCIA.txt) incluye el alta de productos con `POST /api/products`. La ruta requiere JSON y un JWT de administrador. El registro público asigna `client` aunque el cuerpo solicite `admin`. El alta devuelve 403 para ese cliente y 201 tras asignar el rol en la base e iniciar sesión de nuevo.
 
 ### 4.1. Registro de Usuario (Exitoso)
 - **Endpoint:** `POST /api/auth/register`
@@ -433,7 +437,7 @@ HTTP 409 Conflict
 ### Gestión de Seguridad (Contraseñas y JWT):
 
 1. **Hash de contraseñas:** Durante el registro (`POST /api/auth/register`), la contraseña del usuario nunca se persiste en texto plano; se procesa con la librería `bcryptjs` utilizando un factor de costo (*salt rounds*) de 12. Durante el inicio de sesión (`POST /api/auth/login`), se invoca `bcrypt.compare()` en tiempo constante, previniendo ataques de temporización (*timing attacks*). En el modelo `User`, el campo `passwordHash` se define con `select: false`, impidiendo que consultas comunes expongan el hash a otras capas de la aplicación.
-2. **Generación y Verificación de JWT:** Tras un login exitoso, se genera un JSON Web Token firmado con el algoritmo criptográfico simétrico HMAC-SHA256 (`HS256`) utilizando una clave secreta obligatoria de alta entropía (mínimo 32 bytes). El token incorpora reclamos estándar (*claims*): `sub` (con el `id` del usuario), `iss` (`huella-api`), `aud` (`huella-web`) y una vigencia limitada (`exp: 1h`). El middleware `src/middleware/auth.js` verifica rigurosamente el esquema `Bearer`, valida la firma criptográfica y el vencimiento antes de conceder acceso a los controladores protegidos.
+2. **Generación y Verificación de JWT:** Tras un login exitoso, se genera un JSON Web Token firmado con el algoritmo criptográfico simétrico HMAC-SHA256 (`HS256`) utilizando una clave secreta obligatoria de alta entropía (mínimo 32 bytes). El token incorpora reclamos estándar (*claims*): `sub` (con el `id` del usuario), `iss` (`huella-tienda`), `aud` (`huella-api`) y una vigencia limitada (`exp: 1h`). El middleware `src/middleware/auth.js` verifica rigurosamente el esquema `Bearer`, valida la firma criptográfica y el vencimiento antes de conceder acceso a los controladores protegidos.
 
 ### Manejo de Transacciones y Errores:
 

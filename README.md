@@ -24,6 +24,7 @@ Abre http://localhost:3000/api/products para ver el catálogo. `npm run dev` rei
 | Método y ruta | Resultado | Acceso |
 |---|---|---|
 | GET /api/products | Catálogo e inventario | Público |
+| POST /api/products | Crea un producto con `sku`, `nombre`, `categoria`, `precioCentavos`, `stock` y `description` opcional | JWT de administrador |
 | POST /api/auth/register | Registra con `nombre`, `email` y `password` | Público |
 | POST /api/auth/login | Devuelve un JWT al enviar `email` y `password` | Público |
 | POST /api/orders | Compra con `{"items":[{"producto":"<ID del catálogo>","cantidad":2}]}` | JWT |
@@ -32,14 +33,18 @@ Abre http://localhost:3000/api/products para ver el catálogo. `npm run dev` rei
 
 Para enviar JSON, usa `Content-Type: application/json`. Las rutas privadas requieren `Authorization: Bearer <token>`. El ID de una orden se obtiene como `orden._id` al comprar.
 
+El registro público siempre asigna el rol `client`. Para habilitar un administrador, el responsable de la base debe cambiar a `admin` el campo `role` de la cuenta correspondiente en la colección `users`. Después, esa cuenta debe iniciar sesión de nuevo para obtener un JWT que incluya el rol.
+
 ## Integración con la base del equipo
 
 La conexión se concentra en `src/config/database.js`. Los archivos en `src/models/` son el contrato que usa la API. Si tu compañero ya tiene modelos o datos, comparen los nombres, tipos e índices antes de conectar su base; pueden adaptar esos archivos o acordar este contrato:
 
-- `users`: `nombre`, `email` único y normalizado, `passwordHash` de bcrypt.
-- `products`: `sku` único, `nombre`, `categoria`, `precioCentavos` entero positivo, `stock` entero no negativo.
+- `users`: `nombre`, `email` único y normalizado, `passwordHash` de bcrypt y `role`.
+- `products`: `sku` único, `nombre`, `description` opcional, `categoria`, `precioCentavos` entero positivo, `stock` entero no negativo.
 - `orders`: `usuario` ObjectId, `items[].producto` ObjectId, nombre/precio de cada artículo al comprar, cantidades, total y estado.
 
 La cuenta de MongoDB necesita acceso para leer, escribir y crear los índices de estas colecciones. Usen una base de pruebas distinta para ejecutar `npm run test:api`: el script inserta datos de ejemplo para verificar el flujo y los deja en esa base.
 
-El informe técnico está en [INFORME.md](INFORME.md). Antes de entregar, agreguen allí el enlace público al repositorio donde integren ambos aportes. Revisen que el archivo `.env` no aparezca en el repositorio.
+La integración incorpora la descripción de productos y el alta administrativa del backend de referencia. Para conectar a Atlas, configura `MONGODB_URI` con una base para Huella. Si el backend de referencia ya guardó datos con campos como `name`, `price` o `products`, migren esos documentos antes de usar las mismas colecciones.
+
+El [informe técnico](INFORME.md) incluye el repositorio y [la evidencia en texto](EVIDENCIA.txt) registra las peticiones de la prueba de integración.
