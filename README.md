@@ -1,7 +1,4 @@
 # Huella | API de una tienda para mascotas
-
-Backend para consultar productos, registrar clientes, comprar y devolver órdenes. Los precios están en centavos de MXN: 24900 equivale a $249.00.
-
 ## Arranque en PowerShell
 
 Necesitas Node.js 22 o superior y la conexión de tu compañero a **MongoDB Atlas o a un replica set de MongoDB**. Las transacciones requieren esa configuración. Un MongoDB local en modo standalone no sirve para esta API.
