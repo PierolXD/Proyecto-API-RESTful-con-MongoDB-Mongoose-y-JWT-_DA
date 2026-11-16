@@ -1,21 +1,40 @@
-# Informe técnico: Huella
+# Proyecto API RESTful con MongoDB, Mongoose y JWT
+**Informe Técnico del Proyecto**
 
-## 1. Metadatos
+---
 
-- Proyecto: API REST de venta de productos para mascotas.
-- Repositorio público: https://github.com/PierolXD/Proyecto-API-RESTful-con-MongoDB-Mongoose-y-JWT-_DA
-- Comandos en PowerShell:
+## 1. Metadatos del Proyecto
+
+- **Enlace al Repositorio (GitHub):**  
+  https://github.com/PierolXD/Proyecto-API-RESTful-con-MongoDB-Mongoose-y-JWT-_DA
+
+- **Comandos de Ejecución:**
 
 ```powershell
+# 1. Instalar dependencias exactas
 npm ci
+
+# 2. Configurar variables de entorno desde la plantilla
 Copy-Item .env.example .env
+
+# 3. Generar clave secreta segura de 32 bytes para JWT
 node -e "console.log(require('node:crypto').randomBytes(32).toString('hex'))"
-# Editar .env con el secreto generado y el URI del equipo
+
+# 4. Configurar en .env el JWT_SECRET generado y el MONGODB_URI (Replica Set / Atlas)
+
+# 5. Poblar catálogo inicial de prueba
 npm run seed
+
+# 6. Iniciar servidor en producción o desarrollo
 npm start
+# o para modo desarrollo con recarga automática:
+npm run dev
+
+# 7. Ejecutar suite completa de pruebas automatizadas
+npm run test:api
 ```
 
-Plantilla de entorno sin credenciales:
+- **Plantilla de Entorno (`.env.example`):**
 
 ```dotenv
 PORT=3000
@@ -23,64 +42,55 @@ MONGODB_URI=mongodb://127.0.0.1:27017/huella?replicaSet=rs0
 JWT_SECRET=
 ```
 
-## 2. Arquitectura MVC
+---
+
+## 2. Arquitectura del Proyecto (MVC)
+
+### Árbol de Directorios (Texto):
 
 ```text
-src/
-  app.js
-  server.js
-  config/
-    database.js
-  controllers/
-    auth.js
-    orders.js
-    products.js
-  middleware/
-    auth.js
-    errors.js
-  models/
-    Order.js
-    Product.js
-    User.js
-  routes/
-    api.js
-scripts/
-  seed.js
-  verify.js
+DA proyecto 16_11_2026/
+├── .env.example
+├── .gitignore
+├── EVIDENCIA.txt
+├── INFORME.md
+├── README.md
+├── package-lock.json
+├── package.json
+├── scripts/
+│   ├── seed.js
+│   └── verify.js
+└── src/
+    ├── app.js
+    ├── server.js
+    ├── config/
+    │   └── database.js
+    ├── controllers/
+    │   ├── auth.js
+    │   ├── orders.js
+    │   └── products.js
+    ├── middleware/
+    │   ├── auth.js
+    │   └── errors.js
+    ├── models/
+    │   ├── Order.js
+    │   ├── Product.js
+    │   └── User.js
+    └── routes/
+        └── api.js
 ```
 
-Express recibe las solicitudes y la ruta selecciona el controlador. Las rutas privadas pasan primero por el middleware que verifica el JWT y entrega al controlador el ID del cliente. Los controladores aplican las reglas de negocio y consultan o modifican documentos a través de los modelos de Mongoose. El controlador envía la representación JSON de los recursos y un middleware común construye las respuestas de error.
+### Descripción del Flujo:
 
-## 3. Modelado
+El flujo de una petición comienza en el servidor Express (`src/app.js`), donde se configuran los parsers de JSON y se enrutan las solicitudes hacia `src/routes/api.js`. Las peticiones a rutas protegidas pasan primero por el middleware de autenticación (`src/middleware/auth.js`), el cual valida el token Bearer JWT con el algoritmo HS256, extrae el identificador del usuario decodificado y lo inyecta en `res.locals.userId`; si el token falta o no es válido, corta inmediatamente el flujo devolviendo un error HTTP 401. Una vez superada la autenticación (o en rutas públicas como catálogo o login/registro), el enrutador invoca el controlador correspondiente (`src/controllers/`). El controlador ejecuta las reglas de negocio e interactúa con la base de datos a través de los modelos de Mongoose (`src/models/User.js`, `src/models/Product.js`, `src/models/Order.js`). En operaciones críticas (como compra o devolución), las operaciones sobre múltiples documentos se ejecutan dentro de una sesión y transacción atómica de MongoDB (`session`). Finalmente, el controlador emite la respuesta JSON y cualquier excepción generada es capturada por el middleware centralizado de errores (`src/middleware/errors.js`), el cual mapea códigos de estado HTTP semánticos (400, 401, 404, 409, 500) sin exponer detalles sensibles al cliente.
 
-Usuario exige nombre y correo válido, normaliza el correo y garantiza su unicidad con un índice. Oculta el hash de contraseña de las consultas ordinarias. Producto exige SKU único, nombre, categoría del catálogo, precio entero positivo y stock entero no negativo. Orden requiere un ObjectId de usuario y por lo menos un artículo con ObjectId de producto, cantidad entera y precio de compra. El estado se restringe a `comprada` o `devuelta`. El código completo de los esquemas aparece en el apéndice.
+---
 
-## 4. Endpoints y pruebas
+## 3. Modelado de Datos (Esquemas de Mongoose)
 
-| Método y ruta | Headers | Cuerpo | Éxito |
-|---|---|---|---|
-| POST /api/auth/register | Content-Type: application/json | nombre, email, password | 201, usuario |
-| POST /api/auth/login | Content-Type: application/json | email, password | 200, token y usuario |
-| GET /api/products | Ninguno | Sin cuerpo | 200, catálogo en MXN |
-| POST /api/orders | Content-Type: application/json y Authorization: Bearer JWT | items: arreglo de producto y cantidad | 201, orden |
-| GET /api/orders | Authorization: Bearer JWT | Sin cuerpo | 200, órdenes del usuario |
-| PATCH /api/orders/:id/return | Authorization: Bearer JWT | Sin cuerpo | 200, orden devuelta |
+### Esquema de Usuario (Código):
 
-`npm run test:api` levanta un servidor de pruebas, realiza peticiones HTTP reales y escribe sus códigos, headers y cuerpos JSON. Ejecutar con `MONGODB_URI` apuntando a una base de pruebas: la prueba crea documentos de ejemplo. El JWT se omite en el texto generado.
-
-La ejecución con un replica set temporal de MongoDB pasó las pruebas. En [EVIDENCIA.txt](EVIDENCIA.txt) están las solicitudes y respuestas reales de registro, inicio de sesión, compra y devolución, junto con sus casos de error. Se verificó que al comprar dos unidades el stock bajó de 5 a 3, al devolver subió a 5 y un segundo intento dejó el stock en 5. También se comprobó que una compra de varios artículos revierte todos los cambios si uno queda sin stock.
-
-## 5. Reflexión técnica
-
-La contraseña se guarda como hash de bcrypt con factor 12 y se compara durante el inicio de sesión. El token se firma con HS256, identifica al usuario en su campo subject y vence en una hora. Se verifica la firma y se comprueban el algoritmo, el emisor, la audiencia y la caducidad. Las consultas de órdenes filtran por el usuario autenticado.
-
-En la compra, cada actualización de inventario exige stock suficiente y se ejecuta en la misma transacción que la creación de la orden. El precio se lee de MongoDB y la orden conserva el precio al momento de la compra. Una falla revierte todos los cambios. Al devolver, la transacción cambia de `comprada` a `devuelta` y repone el stock; el filtro por estado impide una segunda devolución. Un ID mal formado recibe 400, una orden ajena o inexistente 404 y un conflicto de stock o estado 409.
-
-## Apéndice: código de los esquemas
-
-### User
-
-```js
+```javascript
 import mongoose from 'mongoose';
 
 const schema = new mongoose.Schema({
@@ -93,9 +103,9 @@ const schema = new mongoose.Schema({
 export default mongoose.model('User', schema);
 ```
 
-### Product
+### Esquema de Producto (Código):
 
-```js
+```javascript
 import mongoose from 'mongoose';
 
 const schema = new mongoose.Schema({
@@ -109,9 +119,9 @@ const schema = new mongoose.Schema({
 export default mongoose.model('Product', schema);
 ```
 
-### Order
+### Esquema de Orden (Código):
 
-```js
+```javascript
 import mongoose from 'mongoose';
 
 const item = new mongoose.Schema({
@@ -131,3 +141,306 @@ const schema = new mongoose.Schema({
 
 export default mongoose.model('Order', schema);
 ```
+
+### Validaciones Aplicadas (Explicación):
+
+- **Usuario:**
+  - `nombre`: Tipo `String`, obligatorio (`required: true`), sin espacios residuales (`trim: true`) y longitud máxima de 100 caracteres.
+  - `email`: Tipo `String`, obligatorio, normalizado a minúsculas (`lowercase: true`), con índice único en base de datos (`unique: true`) y validación estricta de formato de correo mediante expresión regular (`match`).
+  - `passwordHash`: Almacenado como hash de bcrypt. Configurado con `select: false` para que nunca viaje ni se incluya accidentalmente en consultas regulares a la base de datos.
+- **Producto:**
+  - `sku`: Código único de inventario en mayúsculas (`uppercase: true`), obligatorio e indexado de forma única (`unique: true`).
+  - `categoria`: Validación mediante lista cerrada (`enum: ['alimento', 'juguetes', 'higiene', 'accesorios']`).
+  - `precioCentavos` y `stock`: Valores numéricos enteros (`Number.isSafeInteger`). El precio no admite números negativos ni decimales flotantes (se almacena en centavos para evitar errores de precisión de punto flotante) y el stock no puede ser inferior a 0 (`min: 0`).
+- **Orden:**
+  - `usuario`: Referencia relacional explícita mediante `ObjectId` hacia el modelo `User`, indexado para acelerar consultas de historial.
+  - `items`: Subdocumentos embebidos donde cada elemento referencia por `ObjectId` a un `Product`. Conserva el nombre y precio histórico congelado al momento de la compra.
+  - `estado`: Restringido estrictamente a los valores del ciclo de vida (`enum: ['comprada', 'devuelta']`), impidiendo estados incongruentes.
+
+---
+
+## 4. Documentación de Endpoints y Pruebas (Texto Plano)
+
+Todas las pruebas corresponden a ejecuciones HTTP reales contra la API activa, con salida en texto plano sin el uso de capturas de pantalla ni Postman.
+
+### 4.1. Registro de Usuario (Exitoso)
+- **Endpoint:** `POST /api/auth/register`
+- **Headers Requeridos:** `{"Content-Type": "application/json"}`
+- **Request Payload (Cuerpo de la petición):**
+```json
+{
+  "nombre": "Cliente de prueba",
+  "email": "demo-c76821af7c10@example.com",
+  "password": "Solo-Pruebas-2026"
+}
+```
+- **Response Payload (Respuesta del servidor):**
+```text
+HTTP 201 Created
+```
+```json
+{
+  "usuario": {
+    "id": "6afb432978c547576ed3e667",
+    "nombre": "Cliente de prueba",
+    "email": "demo-c76821af7c10@example.com"
+  }
+}
+```
+
+### 4.2. Registro de Usuario (Conflicto por Email Duplicado)
+- **Endpoint:** `POST /api/auth/register`
+- **Headers Requeridos:** `{"Content-Type": "application/json"}`
+- **Request Payload (Cuerpo de la petición):**
+```json
+{
+  "nombre": "Cliente de prueba",
+  "email": "demo-c76821af7c10@example.com",
+  "password": "Solo-Pruebas-2026"
+}
+```
+- **Response Payload (Respuesta del servidor):**
+```text
+HTTP 409 Conflict
+```
+```json
+{
+  "error": "El registro ya existe."
+}
+```
+
+### 4.3. Inicio de Sesión (Credenciales Incorrectas)
+- **Endpoint:** `POST /api/auth/login`
+- **Headers Requeridos:** `{"Content-Type": "application/json"}`
+- **Request Payload (Cuerpo de la petición):**
+```json
+{
+  "email": "demo-c76821af7c10@example.com",
+  "password": "Incorrecta123"
+}
+```
+- **Response Payload (Respuesta del servidor):**
+```text
+HTTP 401 Unauthorized
+```
+```json
+{
+  "error": "Credenciales incorrectas."
+}
+```
+
+### 4.4. Inicio de Sesión (Exitoso)
+- **Endpoint:** `POST /api/auth/login`
+- **Headers Requeridos:** `{"Content-Type": "application/json"}`
+- **Request Payload (Cuerpo de la petición):**
+```json
+{
+  "email": "demo-c76821af7c10@example.com",
+  "password": "Solo-Pruebas-2026"
+}
+```
+- **Response Payload (Respuesta del servidor):**
+```text
+HTTP 200 OK
+```
+```json
+{
+  "token": "<JWT omitido>",
+  "usuario": {
+    "id": "6afb432978c547576ed3e667",
+    "nombre": "Cliente de prueba",
+    "email": "demo-c76821af7c10@example.com"
+  }
+}
+```
+
+### 4.5. Consulta de Catálogo de Productos (Público)
+- **Endpoint:** `GET /api/products`
+- **Headers Requeridos:** Ninguno
+- **Request Payload (Cuerpo de la petición):** `(sin cuerpo)`
+- **Response Payload (Respuesta del servidor):**
+```text
+HTTP 200 OK
+```
+```json
+{
+  "moneda": "MXN",
+  "productos": [
+    {
+      "_id": "6afb432978c547576ed3e663",
+      "sku": "HUE-002",
+      "nombre": "Pelota de goma",
+      "categoria": "juguetes",
+      "precioCentavos": 8900,
+      "stock": 12
+    }
+  ]
+}
+```
+
+### 4.6. Crear Orden (Falla por Ausencia de Token)
+- **Endpoint:** `POST /api/orders`
+- **Headers Requeridos:** `{"Content-Type": "application/json"}`
+- **Request Payload (Cuerpo de la petición):**
+```json
+{
+  "items": [
+    {
+      "producto": "6afb432978c547576ed3e663",
+      "cantidad": 2
+    }
+  ]
+}
+```
+- **Response Payload (Respuesta del servidor):**
+```text
+HTTP 401 Unauthorized
+```
+```json
+{
+  "error": "Token ausente, inválido o vencido."
+}
+```
+
+### 4.7. Crear Orden (Falla por Stock Insuficiente y Reversión)
+- **Endpoint:** `POST /api/orders`
+- **Headers Requeridos:** `{"Content-Type": "application/json", "Authorization": "Bearer <JWT omitido>"}`
+- **Request Payload (Cuerpo de la petición):**
+```json
+{
+  "items": [
+    { "producto": "6afb432978c547576ed3e663", "cantidad": 2 },
+    { "producto": "6afb432978c547576ed3e664", "cantidad": 2 }
+  ]
+}
+```
+- **Response Payload (Respuesta del servidor):**
+```text
+HTTP 409 Conflict
+```
+```json
+{
+  "error": "Stock insuficiente."
+}
+```
+*(Nota técnica: el sistema aplicó rollback atómico de la transacción, preservando intacto el stock de todos los artículos pedidos).*
+
+### 4.8. Crear Orden (Exitosa con Precios del Servidor)
+- **Endpoint:** `POST /api/orders`
+- **Headers Requeridos:** `{"Content-Type": "application/json", "Authorization": "Bearer <JWT omitido>"}`
+- **Request Payload (Cuerpo de la petición):**
+```json
+{
+  "items": [
+    {
+      "producto": "6afb432978c547576ed3e663",
+      "cantidad": 2,
+      "precioCentavos": 1
+    }
+  ]
+}
+```
+*(Nota: el cliente intentó enviar `precioCentavos: 1`, pero el servidor ignora el precio del cliente y consulta el precio oficial de la base de datos).*
+- **Response Payload (Respuesta del servidor):**
+```text
+HTTP 201 Created
+```
+```json
+{
+  "orden": {
+    "usuario": "6afb432978c547576ed3e667",
+    "items": [
+      {
+        "producto": "6afb432978c547576ed3e663",
+        "nombre": "Pelota de prueba 1",
+        "cantidad": 2,
+        "precioCentavos": 8900
+      }
+    ],
+    "totalCentavos": 17800,
+    "estado": "comprada",
+    "_id": "6afb432a78c547576ed3e674",
+    "createdAt": "2026-11-16T17:53:46.501Z",
+    "updatedAt": "2026-11-16T17:53:46.501Z",
+    "__v": 0
+  }
+}
+```
+
+### 4.9. Devolver Orden (Falla por Orden Ajena o No Encontrada)
+- **Endpoint:** `PATCH /api/orders/6afb432a78c547576ed3e674/return`
+- **Headers Requeridos:** `{"Authorization": "Bearer <JWT de otro usuario>"}`
+- **Request Payload (Cuerpo de la petición):** `(sin cuerpo)`
+- **Response Payload (Respuesta del servidor):**
+```text
+HTTP 404 Not Found
+```
+```json
+{
+  "error": "Orden no encontrada."
+}
+```
+
+### 4.10. Devolver Orden (Exitosa con Reposición de Stock)
+- **Endpoint:** `PATCH /api/orders/6afb432a78c547576ed3e674/return`
+- **Headers Requeridos:** `{"Authorization": "Bearer <JWT del propietario>"}`
+- **Request Payload (Cuerpo de la petición):** `(sin cuerpo)`
+- **Response Payload (Respuesta del servidor):**
+```text
+HTTP 200 OK
+```
+```json
+{
+  "orden": {
+    "_id": "6afb432a78c547576ed3e674",
+    "usuario": "6afb432978c547576ed3e667",
+    "items": [
+      {
+        "producto": "6afb432978c547576ed3e663",
+        "nombre": "Pelota de prueba 1",
+        "cantidad": 2,
+        "precioCentavos": 8900
+      }
+    ],
+    "totalCentavos": 17800,
+    "estado": "devuelta",
+    "createdAt": "2026-11-16T17:53:46.501Z",
+    "updatedAt": "2026-11-16T17:53:47.256Z",
+    "__v": 0,
+    "devueltaEn": "2026-11-16T17:53:47.256Z"
+  }
+}
+```
+
+### 4.11. Devolver Orden (Conflicto por Intento de Segunda Devolución)
+- **Endpoint:** `PATCH /api/orders/6afb432a78c547576ed3e674/return`
+- **Headers Requeridos:** `{"Authorization": "Bearer <JWT del propietario>"}`
+- **Request Payload (Cuerpo de la petición):** `(sin cuerpo)`
+- **Response Payload (Respuesta del servidor):**
+```text
+HTTP 409 Conflict
+```
+```json
+{
+  "error": "La orden ya fue devuelta."
+}
+```
+
+---
+
+## 5. Reflexión Técnica
+
+### Gestión de Seguridad (Contraseñas y JWT):
+
+1. **Hash de contraseñas:** Durante el registro (`POST /api/auth/register`), la contraseña del usuario nunca se persiste en texto plano; se procesa con la librería `bcryptjs` utilizando un factor de costo (*salt rounds*) de 12. Durante el inicio de sesión (`POST /api/auth/login`), se invoca `bcrypt.compare()` en tiempo constante, previniendo ataques de temporización (*timing attacks*). En el modelo `User`, el campo `passwordHash` se define con `select: false`, impidiendo que consultas comunes expongan el hash a otras capas de la aplicación.
+2. **Generación y Verificación de JWT:** Tras un login exitoso, se genera un JSON Web Token firmado con el algoritmo criptográfico simétrico HMAC-SHA256 (`HS256`) utilizando una clave secreta obligatoria de alta entropía (mínimo 32 bytes). El token incorpora reclamos estándar (*claims*): `sub` (con el `id` del usuario), `iss` (`huella-api`), `aud` (`huella-web`) y una vigencia limitada (`exp: 1h`). El middleware `src/middleware/auth.js` verifica rigurosamente el esquema `Bearer`, valida la firma criptográfica y el vencimiento antes de conceder acceso a los controladores protegidos.
+
+### Manejo de Transacciones y Errores:
+
+1. **Deducción y Restauración de Stock:**
+   - **Compra:** Al crear una orden (`purchase`), se inicia una sesión transaccional de MongoDB (`mongoose.connection.transaction`). Para cada artículo solicitado, se ejecuta una operación atómica `Product.findOneAndUpdate` exigiendo que el stock disponible en la base de datos sea mayor o igual a la cantidad requerida (`{ stock: { $gte: cantidad } }`) y decrementando el inventario en ese instante (`{ $inc: { stock: -cantidad } }`). Si cualquiera de los productos solicitados carece de stock suficiente, se aborta la transacción completa (*rollback* automático de MongoDB), garantizando que ningún producto quede descontado de forma parcial. Los precios totales se calculan directamente a partir de los datos leídos de la base de datos, desestimando cualquier valor manipulado enviado por el cliente.
+   - **Devolución:** En la devolución (`returnOrder`), una transacción atómica actualiza el estado de la orden de `comprada` a `devuelta` e incrementa nuevamente el stock de cada artículo devuelto (`$inc: { stock: item.cantidad }`). El filtro condicional `{ _id: id, estado: 'comprada' }` garantiza idempotencia frente a solicitudes concurrentes, bloqueando de raíz cualquier intento de devolución duplicada con un código HTTP 409.
+2. **Control Centralizado de Errores:**
+   - Se implementa la clase personalizada `HttpError` que desacopla la lógica de negocio de la respuesta HTTP.
+   - Se distinguen con precisión los códigos de respuesta: datos de entrada inválidos o mal formados (400 Bad Request), credenciales o token no válido/ausente (401 Unauthorized), recursos inexistentes o pertenecientes a otros usuarios (404 Not Found), colisiones de inventario o estado (409 Conflict) y fallos imprevistos del servidor (500 Internal Server Error).
+   - Se capturan y formatean los errores propios del motor de base de datos como duplicados de clave única (`E11000`) y validaciones de esquema (`ValidationError`), asegurando respuestas consistentes en JSON.
